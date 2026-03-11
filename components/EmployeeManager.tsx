@@ -1,12 +1,152 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, Dependent } from '../types';
-import { UserPlus, Edit2, Trash2, X, Save, ChevronUp, ChevronDown, CheckSquare, Square, RefreshCcw, User, Briefcase, Users as UsersIcon, Plus, Minus } from 'lucide-react';
+import { Employee, Dependent, HistoryRecord } from '../types';
+import { UserPlus, Edit2, Trash2, X, Save, ChevronUp, ChevronDown, CheckSquare, Square, RefreshCcw, User, Briefcase, Users as UsersIcon, Plus, Minus, History, Calendar } from 'lucide-react';
 
 interface Props {
   employees: Employee[];
   setEmployees: (emps: Employee[]) => void;
 }
+
+const FieldCard: React.FC<{
+  label: string;
+  value: number | string;
+  onChange: (val: any) => void;
+  type?: 'number' | 'text';
+  history?: HistoryRecord[];
+  onHistoryChange?: (h: HistoryRecord[]) => void;
+  rightElement?: React.ReactNode;
+  prefix?: string;
+  className?: string;
+  bg?: string;
+}> = ({ label, value, onChange, type = 'number', history, onHistoryChange, rightElement, prefix, className, bg = "bg-white" }) => {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  return (
+    <div className={`${bg} border border-gray-100 rounded-2xl p-5 shadow-sm transition-all ${className}`}>
+      <div className="flex justify-between items-start mb-3">
+        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-wider pt-1">{label}</label>
+        <div className="flex flex-col items-end gap-1">
+          {rightElement}
+          {history && onHistoryChange && (
+            <button 
+              onClick={() => setIsHistoryOpen(true)}
+              className="flex items-center gap-1 px-2 py-1 border border-emerald-100 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors text-[10px] font-bold whitespace-nowrap"
+            >
+              <History size={12} />
+              履歴
+              <ChevronDown size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="relative">
+        {prefix && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-sm">{prefix}</span>}
+        <input 
+          type={type} 
+          value={value} 
+          onChange={e => onChange(type === 'number' ? Number(e.target.value) : e.target.value)}
+          className={`w-full border border-gray-100 rounded-xl p-3 text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none transition-all ${prefix ? 'pl-9' : ''}`}
+        />
+      </div>
+
+      {isHistoryOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="p-6 border-b bg-gray-50 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-emerald-100 rounded-lg text-emerald-600">
+                  <History size={20} />
+                </div>
+                <h4 className="font-bold text-gray-800">{label} の変更履歴</h4>
+              </div>
+              <button onClick={() => setIsHistoryOpen(false)} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400"><X size={24}/></button>
+            </div>
+            <div className="p-8 overflow-y-auto space-y-6">
+              <div className="flex justify-between items-center">
+                <p className="text-xs text-gray-500">過去の適用期間と金額を設定してください。</p>
+                <button 
+                  onClick={() => {
+                    const newRecord: HistoryRecord = {
+                      startMonth: new Date().toISOString().substring(0, 7),
+                      endMonth: '9999-12',
+                      amount: Number(value) || 0
+                    };
+                    onHistoryChange([newRecord, ...history].sort((a, b) => b.startMonth.localeCompare(a.startMonth)));
+                  }}
+                  className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 hover:bg-emerald-100 transition-all"
+                >
+                  <Plus size={14} /> 履歴を追加
+                </button>
+              </div>
+              {history.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <History size={32} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-400 italic">履歴データはありません。</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {history.map((record, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-4 items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                      <div className="col-span-4">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">開始月</label>
+                        <input 
+                          type="month" 
+                          value={record.startMonth} 
+                          onChange={e => {
+                            const newHistory = [...history];
+                            newHistory[idx] = { ...newHistory[idx], startMonth: e.target.value };
+                            onHistoryChange(newHistory);
+                          }}
+                          className="w-full text-xs border border-gray-100 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <div className="col-span-4">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">終了月</label>
+                        <input 
+                          type="month" 
+                          value={record.endMonth === '9999-12' ? '' : record.endMonth} 
+                          onChange={e => {
+                            const newHistory = [...history];
+                            newHistory[idx] = { ...newHistory[idx], endMonth: e.target.value || '9999-12' };
+                            onHistoryChange(newHistory);
+                          }}
+                          className="w-full text-xs border border-gray-100 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-emerald-500"
+                          placeholder="現在まで"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1.5">金額</label>
+                        <input 
+                          type="number" 
+                          value={record.amount} 
+                          onChange={e => {
+                            const newHistory = [...history];
+                            newHistory[idx] = { ...newHistory[idx], amount: Number(e.target.value) };
+                            onHistoryChange(newHistory);
+                          }}
+                          className="w-full text-xs border border-gray-100 rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-emerald-500 font-bold"
+                        />
+                      </div>
+                      <div className="col-span-1 text-right pt-5">
+                        <button onClick={() => onHistoryChange(history.filter((_, i) => i !== idx))} className="text-gray-300 hover:text-red-500 transition-colors">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t bg-gray-50 flex justify-end">
+              <button onClick={() => setIsHistoryOpen(false)} className="px-8 py-3 bg-emerald-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all">履歴を保存して閉じる</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,6 +198,7 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
       laborInsuranceNo: '',
       pensionNo: '',
       healthInsuranceNo: '',
+      spouse: { name: '', isTaxDependent: false },
       dependents: [],
     });
     setEditingId(null);
@@ -66,7 +207,11 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
   };
 
   const openEdit = (emp: Employee) => {
-    setFormData({ ...emp, dependents: emp.dependents || [] });
+    setFormData({ 
+      ...emp, 
+      spouse: emp.spouse || { name: '', isTaxDependent: false },
+      dependents: emp.dependents || [] 
+    });
     setEditingId(emp.id);
     setActiveSubTab('basic');
     setIsModalOpen(true);
@@ -82,11 +227,18 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
   };
 
   const addDependent = () => {
-    const newDependent: Dependent = { id: crypto.randomUUID(), name: '', relationship: '', birthDate: '' };
+    const newDependent: Dependent = { 
+      id: crypto.randomUUID(), 
+      name: '', 
+      relationship: '', 
+      birthDate: '',
+      isTaxDependent: false,
+      isSpecialDisabled: false
+    };
     setFormData({ ...formData, dependents: [...(formData.dependents || []), newDependent] });
   };
 
-  const updateDependent = (id: string, field: keyof Dependent, value: string) => {
+  const updateDependent = (id: string, field: keyof Dependent, value: any) => {
     setFormData({
       ...formData,
       dependents: (formData.dependents || []).map(d => d.id === id ? { ...d, [field]: value } : d)
@@ -169,7 +321,7 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+          <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
             {/* Modal Header */}
             <div className="p-6 border-b flex justify-between items-center bg-gray-50">
               <div>
@@ -261,37 +413,101 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
 
                   <div className="col-span-6 border-t my-4 pt-6"><h4 className="text-emerald-700 font-bold text-sm">支給・手当設定</h4></div>
                   
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">役職/部署</label>
-                    <input type="text" value={formData.position} onChange={e => setFormData({...formData, position: e.target.value})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">基本給</label>
-                    <input type="number" value={formData.baseSalary} onChange={e => setFormData({...formData, baseSalary: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm font-bold" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 flex justify-between">
-                      残業計算用時給 
-                      <button onClick={() => setFormData({...formData, hourlyWage: Math.round(((formData.baseSalary||0)+(formData.positionAllowance||0)+(formData.skillAllowance||0))/160)})} className="text-emerald-600 hover:underline">自動算出</button>
-                    </label>
-                    <input type="number" value={formData.hourlyWage} onChange={e => setFormData({...formData, hourlyWage: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm bg-emerald-50" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">役職手当</label>
-                    <input type="number" value={formData.positionAllowance} onChange={e => setFormData({...formData, positionAllowance: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">職能給</label>
-                    <input type="number" value={formData.skillAllowance} onChange={e => setFormData({...formData, skillAllowance: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">住宅手当</label>
-                    <input type="number" value={formData.housingAllowance} onChange={e => setFormData({...formData, housingAllowance: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">家族手当</label>
-                    <input type="number" value={formData.familyAllowance} onChange={e => setFormData({...formData, familyAllowance: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
+                  <FieldCard 
+                    label="役職/部署" 
+                    value={formData.position || ''} 
+                    onChange={v => setFormData({...formData, position: v})} 
+                    type="text"
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="基本給" 
+                    value={formData.baseSalary || 0} 
+                    onChange={v => setFormData({...formData, baseSalary: v})} 
+                    history={formData.baseSalaryHistory || []}
+                    onHistoryChange={h => setFormData({...formData, baseSalaryHistory: h})}
+                    prefix="¥"
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="残業計算用時給" 
+                    value={formData.hourlyWage || 0} 
+                    onChange={v => setFormData({...formData, hourlyWage: v})} 
+                    history={formData.hourlyWageHistory || []}
+                    onHistoryChange={h => setFormData({...formData, hourlyWageHistory: h})}
+                    bg="bg-emerald-50/30"
+                    rightElement={
+                      <button 
+                        onClick={() => setFormData({...formData, hourlyWage: Math.round(((formData.baseSalary||0)+(formData.positionAllowance||0)+(formData.skillAllowance||0))/160)})} 
+                        className="text-[10px] font-bold text-emerald-600 hover:underline"
+                      >
+                        自動算出
+                      </button>
+                    }
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="役職手当" 
+                    value={formData.positionAllowance || 0} 
+                    onChange={v => setFormData({...formData, positionAllowance: v})} 
+                    history={formData.positionAllowanceHistory || []}
+                    onHistoryChange={h => setFormData({...formData, positionAllowanceHistory: h})}
+                    prefix="¥"
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="職能給" 
+                    value={formData.skillAllowance || 0} 
+                    onChange={v => setFormData({...formData, skillAllowance: v})} 
+                    history={formData.skillAllowanceHistory || []}
+                    onHistoryChange={h => setFormData({...formData, skillAllowanceHistory: h})}
+                    prefix="¥"
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="住宅手当" 
+                    value={formData.housingAllowance || 0} 
+                    onChange={v => setFormData({...formData, housingAllowance: v})} 
+                    history={formData.housingAllowanceHistory || []}
+                    onHistoryChange={h => setFormData({...formData, housingAllowanceHistory: h})}
+                    prefix="¥"
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="家族手当" 
+                    value={formData.familyAllowance || 0} 
+                    onChange={v => setFormData({...formData, familyAllowance: v})} 
+                    history={formData.familyAllowanceHistory || []}
+                    onHistoryChange={h => setFormData({...formData, familyAllowanceHistory: h})}
+                    prefix="¥"
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="通勤手当（課税）" 
+                    value={formData.commutingAllowanceTaxable || 0} 
+                    onChange={v => setFormData({...formData, commutingAllowanceTaxable: v})} 
+                    history={formData.commutingAllowanceTaxableHistory || []}
+                    onHistoryChange={h => setFormData({...formData, commutingAllowanceTaxableHistory: h})}
+                    prefix="¥"
+                    className="col-span-2"
+                  />
+
+                  <FieldCard 
+                    label="通勤手当（非課税）" 
+                    value={formData.commutingAllowanceNonTaxable || 0} 
+                    onChange={v => setFormData({...formData, commutingAllowanceNonTaxable: v})} 
+                    history={formData.commutingAllowanceNonTaxableHistory || []}
+                    onHistoryChange={h => setFormData({...formData, commutingAllowanceNonTaxableHistory: h})}
+                    prefix="¥"
+                    className="col-span-2"
+                  />
                 </div>
               )}
 
@@ -320,27 +536,81 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
                   </div>
 
                   <div className="col-span-2 pt-4 border-t"><h4 className="text-red-700 font-bold text-sm mb-4">控除設定 (保険料・住民税)</h4></div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">健康保険料</label>
-                    <input type="number" value={formData.healthInsurance} onChange={e => setFormData({...formData, healthInsurance: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">介護保険料</label>
-                    <input type="number" value={formData.nursingInsurance} onChange={e => setFormData({...formData, nursingInsurance: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">厚生年金保険料</label>
-                    <input type="number" value={formData.welfarePension} onChange={e => setFormData({...formData, welfarePension: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">住民税</label>
-                    <input type="number" value={formData.residentTax} onChange={e => setFormData({...formData, residentTax: Number(e.target.value)})} className="w-full border rounded-xl p-3 text-sm" />
-                  </div>
+                  
+                  <FieldCard 
+                    label="健康保険料" 
+                    value={formData.healthInsurance || 0} 
+                    onChange={v => setFormData({...formData, healthInsurance: v})} 
+                    history={formData.healthInsuranceHistory || []}
+                    onHistoryChange={h => setFormData({...formData, healthInsuranceHistory: h})}
+                    prefix="¥"
+                    className="col-span-1"
+                  />
+
+                  <FieldCard 
+                    label="介護保険料" 
+                    value={formData.nursingInsurance || 0} 
+                    onChange={v => setFormData({...formData, nursingInsurance: v})} 
+                    history={formData.nursingInsuranceHistory || []}
+                    onHistoryChange={h => setFormData({...formData, nursingInsuranceHistory: h})}
+                    prefix="¥"
+                    className="col-span-1"
+                  />
+
+                  <FieldCard 
+                    label="厚生年金保険料" 
+                    value={formData.welfarePension || 0} 
+                    onChange={v => setFormData({...formData, welfarePension: v})} 
+                    history={formData.welfarePensionHistory || []}
+                    onHistoryChange={h => setFormData({...formData, welfarePensionHistory: h})}
+                    prefix="¥"
+                    className="col-span-1"
+                  />
+
+                  <FieldCard 
+                    label="住民税" 
+                    value={formData.residentTax || 0} 
+                    onChange={v => setFormData({...formData, residentTax: v})} 
+                    history={formData.residentTaxHistory || []}
+                    onHistoryChange={h => setFormData({...formData, residentTaxHistory: h})}
+                    prefix="¥"
+                    className="col-span-1"
+                  />
                 </div>
               )}
 
               {activeSubTab === 'dependents' && (
-                <div className="space-y-4">
+                <div className="space-y-6">
+                  <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100">
+                    <h4 className="text-emerald-800 font-bold text-sm mb-4">配偶者情報</h4>
+                    <div className="grid grid-cols-6 gap-4 items-end">
+                      <div className="col-span-3">
+                        <label className="block text-[10px] font-bold text-emerald-600 uppercase mb-1">配偶者氏名</label>
+                        <input 
+                          type="text" 
+                          value={formData.spouse?.name || ''} 
+                          onChange={e => setFormData({...formData, spouse: { ...(formData.spouse || { isTaxDependent: false }), name: e.target.value }})}
+                          className="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none" 
+                          placeholder="氏名を入力"
+                        />
+                      </div>
+                      <div className="col-span-3 pb-3">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                          <input 
+                            type="checkbox" 
+                            checked={formData.spouse?.isTaxDependent || false} 
+                            onChange={e => setFormData({...formData, spouse: { ...(formData.spouse || { name: '' }), isTaxDependent: e.target.checked }})}
+                            className="hidden"
+                          />
+                          <div className={`p-1 rounded-md transition-all ${formData.spouse?.isTaxDependent ? 'text-emerald-600' : 'text-gray-300 group-hover:text-gray-400'}`}>
+                            {formData.spouse?.isTaxDependent ? <CheckSquare size={20} /> : <Square size={20} />}
+                          </div>
+                          <span className={`text-sm font-bold ${formData.spouse?.isTaxDependent ? 'text-emerald-700' : 'text-gray-400'}`}>税扶養（1人分としてカウント）</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex justify-between items-center bg-gray-50 p-6 rounded-2xl border">
                     <div>
                       <h4 className="font-bold text-sm">扶養親族情報の管理</h4>
@@ -355,10 +625,12 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
                         <tr>
                           <th className="p-4 w-12 text-center">No</th>
                           <th className="p-4">姓名</th>
-                          <th className="p-4 w-32">続柄</th>
-                          <th className="p-4 w-48">生年月日</th>
-                          <th className="p-4 w-20">年齢</th>
-                          <th className="p-4 w-16">操作</th>
+                          <th className="p-4 w-24">続柄</th>
+                          <th className="p-4 w-32">生年月日</th>
+                          <th className="p-4 w-16 text-center">税扶養</th>
+                          <th className="p-4 w-16 text-center">特別障害</th>
+                          <th className="p-4 w-12 text-center">年齢</th>
+                          <th className="p-4 w-12 text-center">操作</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -368,12 +640,22 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
                             <td className="p-4"><input type="text" value={dep.name} onChange={e => updateDependent(dep.id, 'name', e.target.value)} className="w-full border-none p-0 focus:ring-0 text-sm font-bold bg-transparent" placeholder="氏名を入力" /></td>
                             <td className="p-4"><input type="text" value={dep.relationship} onChange={e => updateDependent(dep.id, 'relationship', e.target.value)} className="w-full border-none p-0 focus:ring-0 text-sm bg-transparent" placeholder="長女等" /></td>
                             <td className="p-4"><input type="date" value={dep.birthDate} onChange={e => updateDependent(dep.id, 'birthDate', e.target.value)} className="w-full border-none p-0 focus:ring-0 text-sm bg-transparent" /></td>
-                            <td className="p-4 text-sm font-bold">{getAge(dep.birthDate)}</td>
-                            <td className="p-4"><button onClick={() => removeDependent(dep.id)} className="text-red-400 hover:text-red-600"><Minus size={16}/></button></td>
+                            <td className="p-4 text-center">
+                              <button onClick={() => updateDependent(dep.id, 'isTaxDependent', !dep.isTaxDependent)} className={`transition-all ${dep.isTaxDependent ? 'text-emerald-600' : 'text-gray-300'}`}>
+                                {dep.isTaxDependent ? <CheckSquare size={20} /> : <Square size={20} />}
+                              </button>
+                            </td>
+                            <td className="p-4 text-center">
+                              <button onClick={() => updateDependent(dep.id, 'isSpecialDisabled', !dep.isSpecialDisabled)} className={`transition-all ${dep.isSpecialDisabled ? 'text-emerald-600' : 'text-gray-300'}`}>
+                                {dep.isSpecialDisabled ? <CheckSquare size={20} /> : <Square size={20} />}
+                              </button>
+                            </td>
+                            <td className="p-4 text-sm font-bold text-center">{getAge(dep.birthDate)}</td>
+                            <td className="p-4 text-center"><button onClick={() => removeDependent(dep.id)} className="text-red-400 hover:text-red-600"><Minus size={16}/></button></td>
                           </tr>
                         ))}
                         {(formData.dependents || []).length === 0 && (
-                          <tr><td colSpan={6} className="p-10 text-center text-gray-400 text-sm italic">扶養家族はいません</td></tr>
+                          <tr><td colSpan={8} className="p-10 text-center text-gray-400 text-sm italic">扶養家族はいません</td></tr>
                         )}
                       </tbody>
                     </table>

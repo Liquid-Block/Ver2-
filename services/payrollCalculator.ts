@@ -1,6 +1,12 @@
 
-import { Employee, AttendanceRecord, PayrollResult, YearlySetting, PayrollHistoryRecord, CompanyConfig, RoundingType, TaxRule } from '../types';
+import { Employee, AttendanceRecord, PayrollResult, YearlySetting, PayrollHistoryRecord, CompanyConfig, RoundingType, TaxRule, HistoryRecord } from '../types';
 import { calculateIncomeTax } from './taxCalculator';
+
+const getAmountFromHistory = (history: HistoryRecord[] | undefined, targetMonth: string, defaultValue: number): number => {
+  if (!history || history.length === 0) return defaultValue;
+  const record = history.find(h => h.startMonth <= targetMonth && h.endMonth >= targetMonth);
+  return record ? record.amount : defaultValue;
+};
 
 const applyRounding = (value: number, type: RoundingType): number => {
   switch (type) {
@@ -107,18 +113,32 @@ export const calculatePayroll = (
     return isNaN(n) ? 0 : n;
   };
 
+  // 履歴から金額を取得
+  const baseSalary = getAmountFromHistory(employee.baseSalaryHistory, month, num(employee.baseSalary));
+  const hourlyWage = getAmountFromHistory(employee.hourlyWageHistory, month, num(employee.hourlyWage));
+  const positionAllowance = getAmountFromHistory(employee.positionAllowanceHistory, month, num(employee.positionAllowance));
+  const skillAllowance = getAmountFromHistory(employee.skillAllowanceHistory, month, num(employee.skillAllowance));
+  const housingAllowance = getAmountFromHistory(employee.housingAllowanceHistory, month, num(employee.housingAllowance));
+  const familyAllowance = getAmountFromHistory(employee.familyAllowanceHistory, month, num(employee.familyAllowance));
+  const commutingAllowanceTaxable = getAmountFromHistory(employee.commutingAllowanceTaxableHistory, month, num(employee.commutingAllowanceTaxable));
+  const commutingAllowanceNonTaxable = getAmountFromHistory(employee.commutingAllowanceNonTaxableHistory, month, num(employee.commutingAllowanceNonTaxable));
+  const healthInsurance = getAmountFromHistory(employee.healthInsuranceHistory, month, num(employee.healthInsurance));
+  const nursingInsurance = getAmountFromHistory(employee.nursingInsuranceHistory, month, num(employee.nursingInsurance));
+  const welfarePension = getAmountFromHistory(employee.welfarePensionHistory, month, num(employee.welfarePension));
+  const residentTax = getAmountFromHistory(employee.residentTaxHistory, month, num(employee.residentTax));
+
   let calculatedBaseSalary = employee.employmentType === 'part-time' 
-    ? applyRounding(num(employee.hourlyWage) * workHoursDecimal, companyConfig.roundingOvertime)
-    : num(employee.baseSalary);
+    ? applyRounding(hourlyWage * workHoursDecimal, companyConfig.roundingOvertime)
+    : baseSalary;
 
   const isPostFeb2026 = targetYear > 2026 || (targetYear === 2026 && targetMonth >= 2);
   
   // ユーザー要望：2026年2月以降は職能手当と住宅手当も残業単価に含める
   const hourlyBaseForCalculation = employee.employmentType === 'part-time' 
-    ? num(employee.hourlyWage) 
+    ? hourlyWage 
     : isPostFeb2026 
-      ? (num(employee.baseSalary) + num(employee.skillAllowance) + num(employee.housingAllowance)) / avgMonthlyHours
-      : (num(employee.baseSalary) + num(employee.skillAllowance)) / avgMonthlyHours;
+      ? (baseSalary + skillAllowance + housingAllowance) / avgMonthlyHours
+      : (baseSalary + skillAllowance) / avgMonthlyHours;
   
   const isDirector = employee.employmentType === 'director';
 
@@ -173,7 +193,17 @@ export const calculatePayroll = (
     num(employmentInsurance);
 
   const socialInsuranceDeductedIncome = Math.max(0, taxableTotal - socialInsuranceTotal);
-  let incomeTax = applyRounding(calculateIncomeTax(socialInsuranceDeductedIncome, employee.dependents.length, taxRules, month), companyConfig.roundingIncomeTax);
+  
+  // 扶養親族等の数（所得税計算用）
+  const taxDependentCount = (employee.spouse?.isTaxDependent ? 1 : 0) +
+    (employee.dependents || []).reduce((acc, dep) => {
+      let count = 0;
+      if (dep.isTaxDependent) count += 1;
+      if (dep.isSpecialDisabled) count += 1;
+      return acc + count;
+    }, 0);
+
+  let incomeTax = applyRounding(calculateIncomeTax(socialInsuranceDeductedIncome, taxDependentCount, taxRules, month), companyConfig.roundingIncomeTax);
   
   // デモデータ用補正 (設定がデフォルトの場合のみ適用するか、あるいは削除するか)
   // 今回は「脱・ハードコード」が目的なので、これらも設定に含めるべきだが、一旦残すか、あるいは設定優先にする
@@ -184,7 +214,7 @@ export const calculatePayroll = (
 
   const yearEndAdjustment = (targetMonth === 12) ? num(employee.yearEndAdjustment) : 0;
 
-  const deductionSubTotal = num(incomeTax) + num(employee.residentTax) + num(yearEndAdjustment);
+  const deductionSubTotal = num(incomeTax) + num(residentTax) + num(yearEndAdjustment);
   const deductionGrandTotal = socialInsuranceTotal + deductionSubTotal;
   const netPay = grossPay - deductionGrandTotal;
 

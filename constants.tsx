@@ -72,9 +72,10 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     laborInsuranceNo: '1234-567890-1',
     pensionNo: '1111-222222',
     healthInsuranceNo: '101',
+    spouse: { name: '蔡本 佳代子', isTaxDependent: true },
     dependents: [
-      { id: 'd1', name: '蔡本 莉緒', relationship: '長女', birthDate: '2009-08-03' },
-      { id: 'd2', name: '蔡本 大真', relationship: '長男', birthDate: '2016-04-14' }
+      { id: 'd1', name: '蔡本 莉緒', relationship: '長女', birthDate: '2009-08-03', isTaxDependent: true, isSpecialDisabled: false },
+      { id: 'd2', name: '蔡本 大真', relationship: '長男', birthDate: '2016-04-14', isTaxDependent: true, isSpecialDisabled: false }
     ],
   },
   {

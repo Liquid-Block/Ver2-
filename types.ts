@@ -58,11 +58,24 @@ export interface YearlySetting {
   companyHolidays?: string[]; // YYYY-MM-DD
 }
 
+export interface HistoryRecord {
+  startMonth: string; // YYYY-MM
+  endMonth: string;   // YYYY-MM
+  amount: number;
+}
+
 export interface Dependent {
   id: string;
   name: string;
   relationship: string;
   birthDate: string;
+  isTaxDependent: boolean;
+  isSpecialDisabled: boolean;
+}
+
+export interface Spouse {
+  name: string;
+  isTaxDependent: boolean;
 }
 
 export interface Employee {
@@ -76,17 +89,29 @@ export interface Employee {
   position: string;
   joinDate: string;
   baseSalary: number;
+  baseSalaryHistory?: HistoryRecord[];
   hourlyWage: number;
+  hourlyWageHistory?: HistoryRecord[];
   positionAllowance: number;
+  positionAllowanceHistory?: HistoryRecord[];
   skillAllowance: number;
+  skillAllowanceHistory?: HistoryRecord[];
   housingAllowance: number;
+  housingAllowanceHistory?: HistoryRecord[];
   familyAllowance: number;
+  familyAllowanceHistory?: HistoryRecord[];
   commutingAllowanceTaxable: number;
+  commutingAllowanceTaxableHistory?: HistoryRecord[];
   commutingAllowanceNonTaxable: number;
+  commutingAllowanceNonTaxableHistory?: HistoryRecord[];
   healthInsurance: number;
+  healthInsuranceHistory?: HistoryRecord[];
   nursingInsurance: number;
+  nursingInsuranceHistory?: HistoryRecord[];
   welfarePension: number;
+  welfarePensionHistory?: HistoryRecord[];
   residentTax: number;
+  residentTaxHistory?: HistoryRecord[];
   yearEndAdjustment?: number;
   remainingPaidLeave?: number;
   entryDate: string; // YYYY-MM-DD
@@ -98,6 +123,7 @@ export interface Employee {
   laborInsuranceNo: string;
   pensionNo: string;
   healthInsuranceNo: string;
+  spouse?: Spouse;
   dependents: Dependent[];
 }
 
