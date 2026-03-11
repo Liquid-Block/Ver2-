@@ -34,7 +34,6 @@ export interface CompanyConfig {
   overtimeRateHolidayNonStatutory: number; // 1.25
   overtimeRateHolidayStatutory: number; // 1.35
   nightPremiumRate: number; // 0.25
-  partTimeOvertimeRate: number; // 0.25 (追加分)
 
   // 保険料率 (単位: /1000)
   insuranceRates: {
@@ -123,6 +122,10 @@ export interface Employee {
   laborInsuranceNo: string;
   pensionNo: string;
   healthInsuranceNo: string;
+  // 給与計算スイッチ
+  calculateOvertimeWeekday?: boolean;
+  calculateHolidayPayNonStatutory?: boolean;
+  calculateHolidayPayStatutory?: boolean;
   spouse?: Spouse;
   dependents: Dependent[];
 }
@@ -191,6 +194,7 @@ export interface PayrollResult {
   netPay: number;
   cashPay: number;
   transferPay: number;
+  debugLogs?: string[];
 }
 
 export interface PayrollHistoryRecord extends PayrollResult {

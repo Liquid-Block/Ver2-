@@ -142,42 +142,69 @@ export const calculatePayroll = (
   
   const isDirector = employee.employmentType === 'director';
 
+  const debugLogs: string[] = [];
+  
+  // 履歴参照ログ
+  const baseSalarySource = employee.baseSalaryHistory?.find(h => h.startMonth <= month && h.endMonth >= month);
+  if (baseSalarySource) {
+    debugLogs.push(`適用データ: ${baseSalarySource.startMonth}〜の基本給(¥${baseSalarySource.amount.toLocaleString()})を参照中`);
+  } else {
+    debugLogs.push(`適用データ: 基本給(¥${num(employee.baseSalary).toLocaleString()}) [履歴なし・現在値]`);
+  }
+
+  // 扶養判定ログ
+  const taxDepCount = (employee.spouse?.isTaxDependent ? 1 : 0);
+  const depCount = (employee.dependents || []).filter(d => d.isTaxDependent).length;
+  const disabledCount = (employee.dependents || []).filter(d => d.isSpecialDisabled).length;
+  debugLogs.push(`判定人数: ${taxDepCount + depCount + disabledCount}人（税扶養: ${taxDepCount + depCount}人 ＋ 特別障害加算: ${disabledCount}人）`);
+
   let overtimePay = 0;
   let nightPay = 0;
   let holidayPay = 0;
 
   if (!isDirector) {
-    if (employee.employmentType === 'regular') {
-      // 正社員の場合、平日の残業代は0円（休日チェックがある日は休日手当として支給）
-      overtimePay = 0;
-    } else {
-      // アルバイト等の残業代計算 (設定値を使用)
+    // 平日残業
+    const otSwitch = employee.calculateOvertimeWeekday !== false; // デフォルトON
+    if (otSwitch) {
       overtimePay = applyRounding(hourlyBaseForCalculation * companyConfig.overtimeRateWeekday * otDecimal, companyConfig.roundingOvertime);
     }
-    
-    // 深夜手当は全従業員（役員以外）一律 (設定値を使用)
-    nightPay = applyRounding(hourlyBaseForCalculation * companyConfig.nightPremiumRate * nightDecimal, companyConfig.roundingOvertime);
+    debugLogs.push(`残業代設定: 平日残業スイッチ[${otSwitch ? 'ON' : 'OFF'}] / 倍率[${companyConfig.overtimeRateWeekday}] を適用`);
 
-    // 休日手当の計算 (法定, 法定外) - 設定値を使用
-    holidayPay = applyRounding(
-      (hourlyBaseForCalculation * companyConfig.overtimeRateHolidayStatutory * legalHolidayDecimal) + 
-      (hourlyBaseForCalculation * companyConfig.overtimeRateHolidayNonStatutory * nonLegalHolidayDecimal),
-      companyConfig.roundingOvertime
-    );
+    // 深夜手当 (常に加算 - 法律遵守)
+    nightPay = applyRounding(hourlyBaseForCalculation * companyConfig.nightPremiumRate * nightDecimal, companyConfig.roundingOvertime);
+    if (nightDecimal > 0) {
+      debugLogs.push(`深夜手当: ${nightDecimal}h × 倍率[${companyConfig.nightPremiumRate}] を適用 (スイッチに関わらず計算)`);
+    }
+
+    // 休日手当 (法定・法定外を個別に判定)
+    const holidayStatutorySwitch = employee.calculateHolidayPayStatutory !== false;
+    const holidayNonStatutorySwitch = employee.calculateHolidayPayNonStatutory !== false;
+    
+    const hPayStatutory = holidayStatutorySwitch 
+      ? applyRounding(hourlyBaseForCalculation * companyConfig.overtimeRateHolidayStatutory * legalHolidayDecimal, companyConfig.roundingOvertime)
+      : 0;
+    
+    const hPayNonStatutory = holidayNonStatutorySwitch
+      ? applyRounding(hourlyBaseForCalculation * companyConfig.overtimeRateHolidayNonStatutory * nonLegalHolidayDecimal, companyConfig.roundingOvertime)
+      : 0;
+      
+    holidayPay = hPayStatutory + hPayNonStatutory;
+
+    debugLogs.push(`休日手当設定: 法定(日曜等)[${holidayStatutorySwitch ? 'ON' : 'OFF'}] / 法定外(土祝等)[${holidayNonStatutorySwitch ? 'ON' : 'OFF'}] を適用`);
   }
 
   const taxableTotal = 
     num(calculatedBaseSalary) + 
-    num(employee.positionAllowance) + 
-    num(employee.skillAllowance) + 
-    num(employee.housingAllowance) + 
-    num(employee.familyAllowance) +
-    num(employee.commutingAllowanceTaxable) +
+    num(positionAllowance) + 
+    num(skillAllowance) + 
+    num(housingAllowance) + 
+    num(familyAllowance) +
+    num(commutingAllowanceTaxable) +
     num(overtimePay) + 
     num(holidayPay) + 
     num(nightPay);
 
-  const nonTaxableTotal = num(employee.commutingAllowanceNonTaxable);
+  const nonTaxableTotal = num(commutingAllowanceNonTaxable);
   const grossPay = taxableTotal + nonTaxableTotal;
 
   let employmentInsurance = 0;
@@ -251,5 +278,6 @@ export const calculatePayroll = (
     netPay,
     cashPay: netPay,
     transferPay: 0,
+    debugLogs,
   };
 };

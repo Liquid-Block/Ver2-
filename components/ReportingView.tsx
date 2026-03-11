@@ -789,7 +789,27 @@ const ReportingView: React.FC<Props> = ({ history, employees, onDeleteMonth }) =
         {activeReport === 'attendance' && (
           <div className="w-full">
             {history.find(h => h.month === targetMonth && h.employee.id === selectedEmpId) ? (
-              <AttendanceSheetView record={history.find(h => h.month === targetMonth && h.employee.id === selectedEmpId)!} />
+              <div className="space-y-6">
+                <AttendanceSheetView record={history.find(h => h.month === targetMonth && h.employee.id === selectedEmpId)!} />
+                
+                {/* Debug Logs */}
+                {history.find(h => h.month === targetMonth && h.employee.id === selectedEmpId)?.debugLogs && (
+                  <div className="bg-red-50 border-2 border-red-100 p-6 rounded-[30px] no-print mx-auto w-full max-w-[210mm]">
+                    <h4 className="text-red-800 font-bold text-sm mb-3 flex items-center gap-2">
+                      <Calculator size={16} />
+                      計算デバッグログ (管理者用)
+                    </h4>
+                    <ul className="space-y-1">
+                      {history.find(h => h.month === targetMonth && h.employee.id === selectedEmpId)?.debugLogs?.map((log, i) => (
+                        <li key={i} className="text-[10px] text-red-600 font-mono flex items-start gap-2">
+                          <span className="opacity-50">•</span>
+                          {log}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-gray-400">
                 <ClipboardList size={48} className="mb-4 opacity-20" />

@@ -152,7 +152,7 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<Employee>>({ dependents: [] });
-  const [activeSubTab, setActiveSubTab] = useState<'basic' | 'insurance' | 'dependents'>('basic');
+  const [activeSubTab, setActiveSubTab] = useState<'basic' | 'insurance' | 'dependents' | 'payroll'>('basic');
 
   const getAge = (birthDate?: string) => {
     if (!birthDate) return "";
@@ -341,6 +341,9 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
               </button>
               <button onClick={() => setActiveSubTab('dependents')} className={`px-8 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${activeSubTab === 'dependents' ? 'border-emerald-600 text-emerald-700 bg-emerald-50/30' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
                 <UsersIcon size={16}/>扶養者情報
+              </button>
+              <button onClick={() => setActiveSubTab('payroll')} className={`px-8 py-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${activeSubTab === 'payroll' ? 'border-emerald-600 text-emerald-700 bg-emerald-50/30' : 'border-transparent text-gray-400 hover:text-gray-600'}`}>
+                <RefreshCcw size={16}/>計算設定
               </button>
             </div>
             
@@ -659,6 +662,85 @@ const EmployeeManager: React.FC<Props> = ({ employees, setEmployees }) => {
                         )}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+              {activeSubTab === 'payroll' && (
+                <div className="space-y-8">
+                  <div className="bg-gray-50 p-8 rounded-3xl border border-gray-100">
+                    <h4 className="text-gray-800 font-bold text-lg mb-6 flex items-center gap-2">
+                      <RefreshCcw className="text-emerald-600" size={20} />
+                      給与計算実行スイッチ
+                    </h4>
+                    <p className="text-sm text-gray-500 mb-8">
+                      従業員ごとに、特定の割増賃金を計算に含めるかどうかを制御します。OFFの場合、該当する勤務時間があっても金額は0円として計算されます。
+                    </p>
+                    
+                    <div className="grid grid-cols-1 gap-6">
+                      <button 
+                        onClick={() => setFormData({...formData, calculateOvertimeWeekday: formData.calculateOvertimeWeekday === false ? true : false})}
+                        className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all text-left ${formData.calculateOvertimeWeekday !== false ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-100 hover:border-gray-200'}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl ${formData.calculateOvertimeWeekday !== false ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                            <Calendar size={24} />
+                          </div>
+                          <div>
+                            <span className={`block font-bold text-lg ${formData.calculateOvertimeWeekday !== false ? 'text-emerald-900' : 'text-gray-400'}`}>平日の割増残業代を計算する</span>
+                            <span className="text-sm text-gray-500">平日1.25倍などの時間外手当を自動計算に含めます。</span>
+                          </div>
+                        </div>
+                        <div className={`w-14 h-8 rounded-full relative transition-all ${formData.calculateOvertimeWeekday !== false ? 'bg-emerald-600' : 'bg-gray-200'}`}>
+                          <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm transition-all ${formData.calculateOvertimeWeekday !== false ? 'right-1' : 'left-1'}`} />
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => setFormData({...formData, calculateHolidayPayNonStatutory: formData.calculateHolidayPayNonStatutory === false ? true : false})}
+                        className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all text-left ${formData.calculateHolidayPayNonStatutory !== false ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-100 hover:border-gray-200'}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl ${formData.calculateHolidayPayNonStatutory !== false ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                            <UsersIcon size={24} />
+                          </div>
+                          <div>
+                            <span className={`block font-bold text-lg ${formData.calculateHolidayPayNonStatutory !== false ? 'text-emerald-900' : 'text-gray-400'}`}>法定外休日（土・祝）の手当を計算する</span>
+                            <span className="text-sm text-gray-500">土曜や祝日の勤務に対する割増手当（1.25倍等）を計算に含めます。</span>
+                          </div>
+                        </div>
+                        <div className={`w-14 h-8 rounded-full relative transition-all ${formData.calculateHolidayPayNonStatutory !== false ? 'bg-emerald-600' : 'bg-gray-200'}`}>
+                          <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm transition-all ${formData.calculateHolidayPayNonStatutory !== false ? 'right-1' : 'left-1'}`} />
+                        </div>
+                      </button>
+
+                      <button 
+                        onClick={() => setFormData({...formData, calculateHolidayPayStatutory: formData.calculateHolidayPayStatutory === false ? true : false})}
+                        className={`flex items-center justify-between p-6 rounded-2xl border-2 transition-all text-left ${formData.calculateHolidayPayStatutory !== false ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-100 hover:border-gray-200'}`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl ${formData.calculateHolidayPayStatutory !== false ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                            <UsersIcon size={24} />
+                          </div>
+                          <div>
+                            <span className={`block font-bold text-lg ${formData.calculateHolidayPayStatutory !== false ? 'text-emerald-900' : 'text-gray-400'}`}>法定休日（日曜）の手当を計算する</span>
+                            <span className="text-sm text-gray-500">日曜などの法定休日勤務に対する割増手当（1.35倍等）を計算に含めます。</span>
+                          </div>
+                        </div>
+                        <div className={`w-14 h-8 rounded-full relative transition-all ${formData.calculateHolidayPayStatutory !== false ? 'bg-emerald-600' : 'bg-gray-200'}`}>
+                          <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm transition-all ${formData.calculateHolidayPayStatutory !== false ? 'right-1' : 'left-1'}`} />
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="mt-8 p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3">
+                      <div className="text-amber-600 pt-0.5">
+                        <History size={18} />
+                      </div>
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        <strong>深夜割増（0.25倍）について:</strong><br />
+                        上記のスイッチがOFFであっても、22時以降の勤務（深夜労働）がある場合は、法令に基づき深夜割増分が常に加算されます。
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}

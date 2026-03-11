@@ -316,16 +316,6 @@ const CompanySettingsManager: React.FC<Props> = ({ config, onSave }) => {
                 className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">パート・アルバイト残業割増</label>
-              <input
-                type="number"
-                step="0.01"
-                value={localConfig.partTimeOvertimeRate}
-                onChange={e => handleChange('partTimeOvertimeRate', Number(e.target.value))}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-              />
-            </div>
           </div>
         )}
 

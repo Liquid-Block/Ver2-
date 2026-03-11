@@ -25,7 +25,6 @@ export const DEFAULT_COMPANY_CONFIG: CompanyConfig = {
   overtimeRateHolidayNonStatutory: 1.25,
   overtimeRateHolidayStatutory: 1.35,
   nightPremiumRate: 0.25,
-  partTimeOvertimeRate: 0.25,
   insuranceRates: {
     health: { employee: 50.6, employer: 50.6 },
     nursing: { employee: 8.1, employer: 8.1 },
@@ -72,6 +71,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     laborInsuranceNo: '1234-567890-1',
     pensionNo: '1111-222222',
     healthInsuranceNo: '101',
+    calculateOvertimeWeekday: false,
+    calculateHolidayPayNonStatutory: false,
+    calculateHolidayPayStatutory: false,
     spouse: { name: '蔡本 佳代子', isTaxDependent: true },
     dependents: [
       { id: 'd1', name: '蔡本 莉緒', relationship: '長女', birthDate: '2009-08-03', isTaxDependent: true, isSpecialDisabled: false },
@@ -111,6 +113,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     laborInsuranceNo: '2345-678901-2',
     pensionNo: '2222-333333',
     healthInsuranceNo: '102',
+    calculateOvertimeWeekday: true,
+    calculateHolidayPayNonStatutory: true,
+    calculateHolidayPayStatutory: true,
     dependents: [],
   },
   {
